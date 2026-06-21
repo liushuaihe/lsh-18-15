@@ -14,7 +14,7 @@ interface PersonnelColumnProps {
 
 export const PersonnelColumn: React.FC<PersonnelColumnProps> = ({ personnel, tickets }) => {
   const st = PERSONNEL_STATUS_CONFIG[personnel.status];
-  const { reassignTicket, getCandidatesFor, draggingTicketId, getTicket } = useDispatchStore();
+  const { reassignTicket, getCandidatesFor, draggingTicketId, getTicket, canAssignTo } = useDispatchStore();
   const [isOver, setIsOver] = useState(false);
   const [expanded, setExpanded] = useState(true);
 
@@ -34,8 +34,9 @@ export const PersonnelColumn: React.FC<PersonnelColumnProps> = ({ personnel, tic
     if (!dragTicket) return false;
     if (personnel.status === 'offline') return false;
     if (dragTicket.assigneeId === personnel.id) return false;
+    if (!canAssignTo(personnel.id)) return false;
     return true;
-  }, [dragTicket, personnel]);
+  }, [dragTicket, personnel, canAssignTo]);
 
   const borderClass = useMemo(() => {
     if (isOver && canAcceptDrop) return 'border-cyber-cyan bg-cyber-cyan/5 shadow-neon-cyan';

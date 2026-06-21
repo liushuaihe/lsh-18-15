@@ -30,7 +30,7 @@ export default function DispatchWall() {
     getTicketsByStatus, getTicketsByAssignee, getStats,
     autoDispatchCriticalPending, autoAssignEnabled, setAutoAssign,
     lastAutoAssignLog, reassignTicket, _refreshScores,
-    assignTicket, reopenRejected, autoDispatch,
+    assignTicket, reopenRejected, autoDispatch, canAssignTo,
   } = useDispatchStore();
 
   const stats = getStats();
@@ -266,6 +266,7 @@ export default function DispatchWall() {
           candidates={candidates}
           onClose={() => selectTicket(null)}
           onAssign={(pid) => {
+            if (!canAssignTo(pid)) return;
             if (sel.status === 'rejected') {
               reopenRejected(sel.id, 'MGR-01', '维修主管');
               setTimeout(() => assignTicket(sel.id, pid, 'MGR-01', '维修主管'), 50);
@@ -545,7 +546,9 @@ function TicketDetailPanel({
                         key={c.personnelId}
                         className={`
                           group relative flex items-center gap-3 p-2.5 rounded-lg border transition
-                          ${idx === 0
+                          ${!c.available
+                            ? 'bg-slate-900/20 border-slate-700/30 opacity-50'
+                            : idx === 0
                             ? 'bg-emerald-500/10 border-emerald-500/50 hover:bg-emerald-500/15 shadow-[0_0_12px_rgba(0,255,136,0.15)]'
                             : idx < 3
                               ? 'bg-cyan-500/5 border-cyan-500/40 hover:bg-cyan-500/10'
@@ -555,7 +558,8 @@ function TicketDetailPanel({
                       >
                         <div className={`
                           w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-orbitron font-bold
-                          ${idx === 0 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/50' :
+                          ${!c.available ? 'bg-slate-800 text-slate-500 border border-slate-600/30' :
+                            idx === 0 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/50' :
                             idx < 3 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40' :
                             'bg-slate-800 text-slate-400 border border-slate-600/50'}
                         `}>
@@ -563,12 +567,17 @@ function TicketDetailPanel({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className={`text-[12px] font-semibold ${idx === 0 ? 'text-emerald-300' : 'text-slate-200'}`}>
+                            <span className={`text-[12px] font-semibold ${!c.available ? 'text-slate-500' : idx === 0 ? 'text-emerald-300' : 'text-slate-200'}`}>
                               {c.personnelName}
                             </span>
-                            {idx === 0 && (
+                            {idx === 0 && c.available && (
                               <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono animate-pulse-led">
                                 <Award size={9} /> 最佳
+                              </span>
+                            )}
+                            {!c.available && (
+                              <span className="px-1 py-0.5 rounded bg-rose-500/15 text-rose-400 text-[9px] font-mono border border-rose-500/30">
+                                不可用
                               </span>
                             )}
                           </div>
@@ -579,7 +588,7 @@ function TicketDetailPanel({
                             <span>·</span>
                             <span>负载 {c.loadFactor}</span>
                             <span>·</span>
-                            <span className={idx === 0 ? 'text-emerald-400' : 'text-cyan-400'}>
+                            <span className={idx === 0 && c.available ? 'text-emerald-400' : 'text-cyan-400'}>
                               综合 {c.totalScore.toFixed(0)}
                             </span>
                           </div>
@@ -589,13 +598,20 @@ function TicketDetailPanel({
                             </div>
                           )}
                         </div>
-                        <button
-                          onClick={() => onAssign(c.personnelId)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-gradient-to-r from-cyber-cyan/20 to-cyan-500/10 border border-cyber-cyan/50 text-cyber-cyan text-[10px] font-mono hover:from-cyber-cyan/30 hover:to-cyan-500/20 hover:shadow-neon-cyan transition group-hover:translate-x-0.5"
-                        >
-                          <ArrowRightLeft size={11} />
-                          派单
-                        </button>
+                        {c.available ? (
+                          <button
+                            onClick={() => onAssign(c.personnelId)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-gradient-to-r from-cyber-cyan/20 to-cyan-500/10 border border-cyber-cyan/50 text-cyber-cyan text-[10px] font-mono hover:from-cyber-cyan/30 hover:to-cyan-500/20 hover:shadow-neon-cyan transition group-hover:translate-x-0.5"
+                          >
+                            <ArrowRightLeft size={11} />
+                            派单
+                          </button>
+                        ) : (
+                          <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-slate-700/50 text-slate-600 text-[10px] font-mono cursor-not-allowed">
+                            <ArrowRightLeft size={11} />
+                            不可派
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
